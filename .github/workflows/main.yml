@@ -1,0 +1,38 @@
+
+name: ROLET SET APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Shkarko projektin
+        uses: actions/checkout@v4
+
+      - name: Instalo Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalo Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalo Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Krijo APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Ruaj APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ROLET-SET-APK
+          path: app/build/outputs/apk/debug/*.apk
