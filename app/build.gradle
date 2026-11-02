@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.roletset.android'
+    namespace 'com.roletset.app'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.roletset.android'
+        applicationId 'com.roletset.app'
         minSdk 23
         targetSdk 28
         versionCode 1
