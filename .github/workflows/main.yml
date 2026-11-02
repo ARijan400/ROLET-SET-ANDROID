@@ -3,7 +3,8 @@ name: ROLET SET APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -21,26 +22,21 @@ jobs:
           java-version: '17'
 
       - name: Konfiguro Android SDK
-        shell: bash
-        run: |
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Instalo Gradle
+      - name: Instalo Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.9'
 
       - name: Krijo APK
-        run: gradle assembleDebug --stacktrace
+        run: gradle :app:assembleDebug --stacktrace
 
       - name: Ruaj APK
         uses: actions/upload-artifact@v4
         with:
           name: ROLET-SET-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
