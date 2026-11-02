@@ -1,3 +1,4 @@
+
 package com.roletset.app;
 
 import android.app.Activity;
@@ -9,17 +10,26 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
+import android.widget.FrameLayout;
+import android.view.ViewGroup;
 
 public class MainActivity extends Activity {
 
+    private FrameLayout root;
     private WebView webView;
     private WebView printWebView;
 
     public class PrintBridge {
+
         @JavascriptInterface
         public void printHtml(String html) {
             runOnUiThread(() -> {
                 if (html == null || html.isEmpty()) return;
+
+                if (printWebView != null) {
+                    root.removeView(printWebView);
+                    printWebView.destroy();
+                }
 
                 WebView documentView =
                     new WebView(MainActivity.this);
@@ -29,6 +39,16 @@ public class MainActivity extends Activity {
                 documentView.getSettings()
                     .setDefaultTextEncodingName("UTF-8");
 
+                // Dokumenti vendoset pas ekranit kryesor.
+                root.addView(
+                    documentView,
+                    0,
+                    new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                );
+
                 documentView.setWebViewClient(
                     new WebViewClient() {
                         @Override
@@ -36,6 +56,8 @@ public class MainActivity extends Activity {
                             WebView view, String url
                         ) {
                             view.postDelayed(() -> {
+                                if (printWebView != view) return;
+
                                 PrintManager manager =
                                     (PrintManager) getSystemService(
                                         Context.PRINT_SERVICE
@@ -55,7 +77,7 @@ public class MainActivity extends Activity {
                                     ),
                                     attributes
                                 );
-                            }, 300);
+                            }, 500);
                         }
                     }
                 );
@@ -75,16 +97,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        root = new FrameLayout(this);
         webView = new WebView(this);
 
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(
-                WebView view, String url
-            ) {
-                installPrintSupport();
-            }
-        });
+        root.addView(
+            webView,
+            new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        );
+
+        setContentView(root);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -95,7 +119,14 @@ public class MainActivity extends Activity {
             new PrintBridge(), "AndroidPrint"
         );
 
-        setContentView(webView);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(
+                WebView view, String url
+            ) {
+                installPrintSupport();
+            }
+        });
 
         webView.loadUrl(
             "file:///android_asset/index.html"
@@ -106,34 +137,37 @@ public class MainActivity extends Activity {
 
         String script =
             "(function() {" +
+
             "function setup(frame) {" +
             "try {" +
             "var w = frame.contentWindow;" +
-            "if (!w || !w.document) return;" +
+            "if (!w || !w.document || !w.document.body) return;" +
 
             "w.print = function() {" +
             "var d = w.document;" +
             "var clone = d.documentElement.cloneNode(true);" +
 
-            "var originals = d.querySelectorAll('input,select,textarea');" +
-            "var copies = clone.querySelectorAll('input,select,textarea');" +
+            "var a = d.querySelectorAll('input,select,textarea');" +
+            "var b = clone.querySelectorAll('input,select,textarea');" +
 
-            "for (var i = 0; i < originals.length; i++) {" +
-            "var a = originals[i];" +
-            "var b = copies[i];" +
-            "if (!b) continue;" +
+            "for (var i = 0; i < a.length; i++) {" +
+            "if (!b[i]) continue;" +
 
-            "if (a.tagName === 'INPUT') {" +
-            "b.setAttribute('value', a.value);" +
-            "if (a.checked) b.setAttribute('checked','');" +
-            "else b.removeAttribute('checked');" +
-            "} else if (a.tagName === 'TEXTAREA') {" +
-            "b.textContent = a.value;" +
-            "} else if (a.tagName === 'SELECT') {" +
-            "for (var j = 0; j < b.options.length; j++) {" +
-            "if (a.options[j].selected) " +
-            "b.options[j].setAttribute('selected','');" +
-            "else b.options[j].removeAttribute('selected');" +
+            "if (a[i].tagName === 'INPUT') {" +
+            "b[i].setAttribute('value',a[i].value);" +
+            "if (a[i].checked) b[i].setAttribute('checked','');" +
+            "else b[i].removeAttribute('checked');" +
+            "}" +
+
+            "if (a[i].tagName === 'TEXTAREA') {" +
+            "b[i].textContent = a[i].value;" +
+            "}" +
+
+            "if (a[i].tagName === 'SELECT') {" +
+            "for (var j=0;j<b[i].options.length;j++) {" +
+            "if (a[i].options[j].selected) " +
+            "b[i].options[j].setAttribute('selected','');" +
+            "else b[i].options[j].removeAttribute('selected');" +
             "}" +
             "}" +
             "}" +
@@ -141,19 +175,20 @@ public class MainActivity extends Activity {
             "clone.querySelectorAll('script').forEach(" +
             "function(s){s.remove();});" +
 
-            "var html = '<!DOCTYPE html>' + clone.outerHTML;" +
-            "AndroidPrint.printHtml(html);" +
+            "var html='<!DOCTYPE html>'+clone.outerHTML;" +
+            "w.AndroidPrint.printHtml(html);" +
             "};" +
 
             "} catch(e) { console.log(e); }" +
             "}" +
 
             "['prod','price','plise'].forEach(function(id) {" +
-            "var frame = document.getElementById(id);" +
-            "if (!frame) return;" +
-            "frame.addEventListener('load',function(){setup(frame);});" +
-            "setup(frame);" +
+            "var f=document.getElementById(id);" +
+            "if (!f) return;" +
+            "f.addEventListener('load',function(){setup(f);});" +
+            "setup(f);" +
             "});" +
+
             "})();";
 
         webView.evaluateJavascript(script, null);
