@@ -13,14 +13,27 @@ import android.webkit.WebSettings;
 import android.widget.FrameLayout;
 import android.view.ViewGroup;
 
+import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewClientCompat;
+import androidx.webkit.WebResourceRequestCompat;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebResourceRequest;
+
 public class MainActivity extends Activity {
 
     private FrameLayout root;
     private WebView webView;
     private WebView printWebView;
 
-    public class PrintBridge {
+    private final WebViewAssetLoader assetLoader =
+        new WebViewAssetLoader.Builder()
+            .addPathHandler(
+                "/assets/",
+                new WebViewAssetLoader.AssetsPathHandler(this)
+            )
+            .build();
 
+    public class PrintBridge {
         @JavascriptInterface
         public void printHtml(String html) {
             runOnUiThread(() -> {
@@ -39,7 +52,6 @@ public class MainActivity extends Activity {
                 documentView.getSettings()
                     .setDefaultTextEncodingName("UTF-8");
 
-                // Dokumenti vendoset pas ekranit kryesor.
                 root.addView(
                     documentView,
                     0,
@@ -83,7 +95,7 @@ public class MainActivity extends Activity {
                 );
 
                 documentView.loadDataWithBaseURL(
-                    "file:///android_asset/",
+                    "https://appassets.androidplatform.net/assets/",
                     html,
                     "text/html",
                     "UTF-8",
@@ -119,7 +131,25 @@ public class MainActivity extends Activity {
             new PrintBridge(), "AndroidPrint"
         );
 
-        webView.setWebViewClient(new WebViewClient() {
+        webView.setWebViewClient(new WebViewClientCompat() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(
+                WebView view, WebResourceRequest request
+            ) {
+                return assetLoader.shouldInterceptRequest(
+                    request.getUrl()
+                );
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(
+                WebView view, String url
+            ) {
+                return assetLoader.shouldInterceptRequest(
+                    android.net.Uri.parse(url)
+                );
+            }
+
             @Override
             public void onPageFinished(
                 WebView view, String url
@@ -129,15 +159,13 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl(
-            "file:///android_asset/index.html"
+            "https://appassets.androidplatform.net/assets/index.html"
         );
     }
 
     private void installPrintSupport() {
-
         String script =
             "(function() {" +
-
             "function setup(frame) {" +
             "try {" +
             "var w = frame.contentWindow;" +
@@ -188,7 +216,6 @@ public class MainActivity extends Activity {
             "f.addEventListener('load',function(){setup(f);});" +
             "setup(f);" +
             "});" +
-
             "})();";
 
         webView.evaluateJavascript(script, null);
