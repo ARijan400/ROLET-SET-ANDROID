@@ -4,9 +4,12 @@ package com.roletset.app;
 import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
+import android.net.Uri;
 import android.print.PrintManager;
 import android.print.PrintAttributes;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
@@ -14,9 +17,6 @@ import android.widget.FrameLayout;
 import android.view.ViewGroup;
 
 import androidx.webkit.WebViewAssetLoader;
-import androidx.webkit.WebViewClientCompat;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebResourceRequest;
 
 public class MainActivity extends Activity {
 
@@ -24,15 +24,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private WebView printWebView;
 
-    private final WebViewAssetLoader assetLoader =
-        new WebViewAssetLoader.Builder()
-            .addPathHandler(
-                "/assets/",
-                new WebViewAssetLoader.AssetsPathHandler(this)
-            )
-            .build();
-
     public class PrintBridge {
+
         @JavascriptInterface
         public void printHtml(String html) {
             runOnUiThread(() -> {
@@ -41,6 +34,7 @@ public class MainActivity extends Activity {
                 if (printWebView != null) {
                     root.removeView(printWebView);
                     printWebView.destroy();
+                    printWebView = null;
                 }
 
                 WebView documentView =
@@ -124,13 +118,21 @@ public class MainActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
+
+        WebViewAssetLoader assetLoader =
+            new WebViewAssetLoader.Builder()
+                .addPathHandler(
+                    "/assets/",
+                    new WebViewAssetLoader.AssetsPathHandler(this)
+                )
+                .build();
 
         webView.addJavascriptInterface(
             new PrintBridge(), "AndroidPrint"
         );
 
-        webView.setWebViewClient(new WebViewClientCompat() {
+        webView.setWebViewClient(new WebViewClient() {
+
             @Override
             public WebResourceResponse shouldInterceptRequest(
                 WebView view, WebResourceRequest request
@@ -145,7 +147,7 @@ public class MainActivity extends Activity {
                 WebView view, String url
             ) {
                 return assetLoader.shouldInterceptRequest(
-                    android.net.Uri.parse(url)
+                    Uri.parse(url)
                 );
             }
 
@@ -163,6 +165,7 @@ public class MainActivity extends Activity {
     }
 
     private void installPrintSupport() {
+
         String script =
             "(function() {" +
             "function setup(frame) {" +
@@ -226,10 +229,12 @@ public class MainActivity extends Activity {
             printWebView.destroy();
             printWebView = null;
         }
+
         if (webView != null) {
             webView.destroy();
             webView = null;
         }
+
         super.onDestroy();
     }
 }
