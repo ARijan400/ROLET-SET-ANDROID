@@ -68,6 +68,8 @@ public class MainActivity extends Activity {
                                         Context.PRINT_SERVICE
                                     );
 
+                                if (manager == null) return;
+
                                 PrintAttributes attributes =
                                     new PrintAttributes.Builder()
                                         .setMediaSize(
@@ -206,13 +208,13 @@ public class MainActivity extends Activity {
             "function(s){s.remove();});" +
 
             "var html='<!DOCTYPE html>'+clone.outerHTML;" +
-            "w.AndroidPrint.printHtml(html);" +
+            "window.AndroidPrint.printHtml(html);" +
             "};" +
 
             "} catch(e) { console.log(e); }" +
             "}" +
 
-            "['prod','price','plise'].forEach(function(id) {" +
+            "['prod','price','plise','pay'].forEach(function(id) {" +
             "var f=document.getElementById(id);" +
             "if (!f) return;" +
             "f.addEventListener('load',function(){setup(f);});" +
