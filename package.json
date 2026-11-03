@@ -1,0 +1,38 @@
+
+{
+  "name": "rolet-set-desktop",
+  "version": "1.0.0",
+  "description": "ROLET SET - Program per Windows",
+  "main": "desktop/main.js",
+  "author": "ROLET SET",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.roletset.desktop",
+    "productName": "ROLET SET",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/**/*",
+      "app/src/main/assets/index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "ROLET-SET-Setup.exe"
+    }
+  }
+}
